@@ -12,13 +12,10 @@ from langchain_cohere import CohereEmbeddings
 from langchain_community.llms import Cohere
 import asyncio
 import nest_asyncio
-import pathlib
-import textwrap
 from PIL import Image
-import pyttsx3
 from langchain_groq import ChatGroq
 
-
+from utils import recognize_speech
 import google.generativeai as genai
 nest_asyncio.apply()
 try:
@@ -102,6 +99,10 @@ if option=="Chat with Your Book":
         # Input box for user to type in at the bottom
         prompt1 = st.text_input("You: ", key="input_box", placeholder="Type your message here...")
 
+        if st.button("Speak 🎙️"):
+            st.write("please speak....")
+            prompt1=recognize_speech()
+            st.write("You said: {prompt1}")
         st.markdown('<div class="fixed-bottom">', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -179,6 +180,10 @@ if option=="Chat with Your Book":
 
             # Input box for user to type in at the bottom
         prompt1 = st.text_input("You: ", key="input_box", placeholder="Type your message here...")
+        if st.button("Speak 🎙️"):
+            st.write("please speak....")
+            prompt1=recognize_speech()
+            st.write("You said: {prompt1}")
 
         st.markdown('<div class="fixed-bottom">', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -257,6 +262,10 @@ if option=="Chat with Your Book":
 
             # Input box for user to type in at the bottom
         prompt1 = st.text_input("You: ", key="input_box", placeholder="Type your message here...")
+        if st.button("Speak 🎙️"):
+            st.write("please speak....")
+            prompt1=recognize_speech()
+            st.write("You said: {prompt1}")
 
         st.markdown('<div class="fixed-bottom">', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -336,6 +345,10 @@ if option=="Chat with Your Book":
 
             # Input box for user to type in at the bottom
         prompt1 = st.text_input("You: ", key="input_box", placeholder="Type your message here...")
+        if st.button("Speak 🎙️"):
+            st.write("please speak....")
+            prompt1=recognize_speech()
+            st.write("You said: {prompt1}")
 
         st.markdown('<div class="fixed-bottom">', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
