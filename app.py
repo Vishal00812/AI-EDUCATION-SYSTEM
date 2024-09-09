@@ -25,24 +25,8 @@ except RuntimeError:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
-# Load environment variables
 
 
-st.markdown(
-    """
-    <style>
-    .fixed-bottom {
-        position: fixed;
-        bottom: 0;
-        width: 100%;
-        background-color: white;
-        padding: 10px 0;
-        z-index: 100;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
 st.markdown(
     """
     <style>
@@ -140,6 +124,14 @@ st.markdown(
     </style>
     """, unsafe_allow_html=True
 )
+
+st.sidebar.markdown(
+    "<h2 style='text-align: center; color: black; font-weight: bold;'>WELCOME TO EDUAI</h2>",
+    unsafe_allow_html=True
+)
+
+st.sidebar.image("logo.png", width=160, use_column_width=False, output_format="auto", caption="Let AI Educate You")
+
 option = st.sidebar.selectbox(
         "Choose an option:",
         ["Get Solution from Image", "Chat with Your Book","Transcript Youtube Video ","Genrate Practice MCQ"]
@@ -622,4 +614,4 @@ elif option=="Genrate Practice MCQ":
         else:
             st.error("Please enter a topic.")
 
-st.markdown('<div class="footer">AI Education</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer">CopyRight &copy; EduAI.com</div>', unsafe_allow_html=True)
