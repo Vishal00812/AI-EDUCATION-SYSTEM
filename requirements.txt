@@ -11,3 +11,9 @@ langchain-objectbox
 langchain_cohere
 langchain_google_genai
 python-dotenv
+langchain_groq
+SpeechRecognition 
+pyaudio
+youtube_transcript_api
+ipykernel
+pyttsx3

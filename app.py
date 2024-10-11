@@ -11,6 +11,7 @@ import time
 from langchain_cohere import CohereEmbeddings
 from langchain_community.llms import Cohere
 import asyncio
+from utils import speak
 import nest_asyncio
 from PIL import Image
 from langchain_groq import ChatGroq
@@ -211,7 +212,8 @@ if option=="Chat with Your Book":
                 st.session_state.messages.append(f"AI: {response['answer']}")
                 st.write("Response Time:", response_time)
                 st.write(response['answer'])
-
+                answer=response['answer']
+                speak(answer)
                 # Clear the input box by resetting the text input
                 st.session_state.input = ""
 
@@ -293,7 +295,8 @@ if option=="Chat with Your Book":
                 st.session_state.messages.append(f"AI: {response['answer']}")
                 st.write("Response Time:", response_time)
                 st.write(response['answer'])
-
+                answer=response['answer']
+                speak(answer)
                     # Clear the input box by resetting the text input
                 st.session_state.input = ""
 
@@ -375,7 +378,8 @@ if option=="Chat with Your Book":
                 st.session_state.messages.append(f"AI: {response['answer']}")
                 st.write("Response Time:", response_time)
                 st.write(response['answer'])
-
+                answer=response['answer']
+                speak(answer)
                     # Clear the input box by resetting the text input
                 st.session_state.input = ""
 
@@ -458,7 +462,8 @@ if option=="Chat with Your Book":
                 st.session_state.messages.append(f"AI: {response['answer']}")
                 st.write("Response Time:", response_time)
                 st.write(response['answer'])
-
+                answer=response['answer']
+                speak(answer)
                     # Clear the input box by resetting the text input
                 st.session_state.input = ""
 
