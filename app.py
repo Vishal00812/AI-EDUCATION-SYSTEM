@@ -80,15 +80,6 @@ st.markdown(
         cursor: pointer;
     }
 
-    /* Custom inputs */
-    .stTextInput input {
-        border: 2px solid #2A9D8F;
-        border-radius: 5px;
-        padding: 10px;
-        font-size: 1.2rem;
-        width: 100%;
-        margin-top: 10px;
-    }
 
     /* Footer styles */
     .footer {
@@ -178,7 +169,8 @@ if option=="Chat with Your Book":
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
-
+        
+        Sucess=''
         
         if "button_clicked" not in st.session_state:
             st.session_state.button_clicked = False
@@ -188,10 +180,13 @@ if option=="Chat with Your Book":
             # Button updates the session state directly in the same run
             if st.button("Read My Book"):
                 vector_embedding()
+                Sucess="Book Read Successfully"
+                st.success(Sucess)
                 st.session_state.button_clicked = True
 
         if st.session_state.button_clicked:
-            st.success("Read Your Book Successfully")
+            Sucess=''
+            st.write(Sucess)
 
 
         # Button to embed documents
@@ -271,7 +266,7 @@ if option=="Chat with Your Book":
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
-
+        Sucess=''
         if "button_clicked" not in st.session_state:
             st.session_state.button_clicked = False
 
@@ -280,10 +275,13 @@ if option=="Chat with Your Book":
             # Button updates the session state directly in the same run
             if st.button("Read My Book"):
                 vector_embedding()
+                Sucess="Book Read Successfully"
+                st.success(Sucess)
                 st.session_state.button_clicked = True
 
         if st.session_state.button_clicked:
-            st.success("Read Your Book Successfully")
+            Sucess=''
+            st.write(Sucess)
        
 
         # Move the input box to the bottom of the page
@@ -360,14 +358,18 @@ if option=="Chat with Your Book":
             st.session_state.button_clicked = False
 
         # Conditionally display the button only if it hasn't been clicked
+        Sucess=''
         if not st.session_state.button_clicked:
             # Button updates the session state directly in the same run
             if st.button("Read My Book"):
                 vector_embedding()
+                Sucess="Book Read Successfully"
+                st.success(Sucess)
                 st.session_state.button_clicked = True
 
         if st.session_state.button_clicked:
-            st.success("Read Your Book Successfully")
+            Sucess=''
+            st.write(Sucess)
        
         # Move the input box to the bottom of the page
         st.write("-----")  # Add a separator
@@ -443,14 +445,18 @@ if option=="Chat with Your Book":
             st.session_state.button_clicked = False
 
         # Conditionally display the button only if it hasn't been clicked
+        sucess=''
         if not st.session_state.button_clicked:
             # Button updates the session state directly in the same run
             if st.button("Read My Book"):
                 vector_embedding()
+                Sucess="Book Read Successfully"
+                st.success(Sucess)
                 st.session_state.button_clicked = True
 
         if st.session_state.button_clicked:
-            st.success("Read Your Book Successfully")
+            Sucess=''
+            st.write(Sucess)
 
 
         # Move the input box to the bottom of the page
@@ -488,6 +494,8 @@ if option=="Chat with Your Book":
     # Display assistant response in chat message container
                 with st.chat_message("assistant"):
                     st.markdown(response)
+
+                speak(answer)
                 st.session_state.messages.append({"role": "assistant", "content": response})
 
             else:
