@@ -12,13 +12,12 @@ from langchain_cohere import CohereEmbeddings
 from langchain_community.llms import Cohere
 import asyncio
 from utils import speak
-from utils import stop_speak
 import nest_asyncio
 from PIL import Image
 from langchain_groq import ChatGroq
 from langchain import LLMChain, PromptTemplate
-from utils import recognize_speech
 import google.generativeai as genai
+from utils import takeCommand
 from youtube_transcript_api import YouTubeTranscriptApi
 nest_asyncio.apply()
 try:
@@ -205,7 +204,7 @@ if option=="Chat with Your Book":
             Speak=st.button("Speak 🎙️")
         if Speak:
             st.write("please speak....")
-            prompt1=recognize_speech()
+            prompt1=takeCommand()
             st.write(f"You said: {prompt1}")
         st.markdown('<div class="fixed-bottom">', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -284,10 +283,10 @@ if option=="Chat with Your Book":
             st.write(Sucess)
        
 
-        # Move the input box to the bottom of the page
-        st.write("-----")  # Add a separator
+ 
+        st.write("-----")  
 
-        # Input box for user to type in at the bottom
+
         col1, col2 = st.columns([4, 1])
         with col1:
             prompt1 = st.chat_input("What you want to know?")
@@ -295,12 +294,12 @@ if option=="Chat with Your Book":
             Speak=st.button("Speak 🎙️")
         if Speak:
             st.write("please speak....")
-            prompt1=recognize_speech()
+            prompt1=takeCommand()
             st.write(f"You said: {prompt1}")
         st.markdown('<div class="fixed-bottom">', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
       
-        # Handle user input and AI response
+
         if prompt1:
             if "vectors" in st.session_state:
                 document_chain = create_stuff_documents_chain(llm, prompt)
@@ -311,15 +310,15 @@ if option=="Chat with Your Book":
                 response_time = time.process_time() - start
                 
                 st.chat_message("user").markdown(prompt1)
-    # Add user message to chat history
+
                 st.session_state.messages.append({"role": "user", "content": prompt1})
                 st.write("Response Time:", response_time)
                 answer=response['answer']
                 response = f"Assistant: {answer}"
-    # Display assistant response in chat message container
+
                 with st.chat_message("assistant"):
                     st.markdown(response)
-                # Add assistant response to chat history
+
                 speak(answer)
                 st.session_state.messages.append({"role": "assistant", "content": response})
 
@@ -328,7 +327,7 @@ if option=="Chat with Your Book":
 
     if selected_class==12:
         st.markdown('<h2 class="header">Chatting with Class 12</h2>', unsafe_allow_html=True)
-    # Function to create vector embeddings
+
         def vector_embedding():
             if "vectors" not in st.session_state:
                 index_file = "faiss_index_12"
@@ -336,7 +335,7 @@ if option=="Chat with Your Book":
                     st.session_state.vectors = FAISS.load_local(index_file, CohereEmbeddings(model="multilingual-22-12"),allow_dangerous_deserialization=True)
     
 
-        # Define prompt template
+  
         prompt = ChatPromptTemplate.from_template("""
         Answer the questions based on the provided context only.
         Please provide the most accurate response based on the question.
@@ -346,7 +345,7 @@ if option=="Chat with Your Book":
         Questions: {input}
         """)
 
-        # Initialize session state for storing chat history
+        
         if "messages" not in st.session_state:
             st.session_state.messages = []
 
@@ -357,10 +356,10 @@ if option=="Chat with Your Book":
         if "button_clicked" not in st.session_state:
             st.session_state.button_clicked = False
 
-        # Conditionally display the button only if it hasn't been clicked
+       
         Sucess=''
         if not st.session_state.button_clicked:
-            # Button updates the session state directly in the same run
+         
             if st.button("Read My Book"):
                 vector_embedding()
                 Sucess="Book Read Successfully"
@@ -370,9 +369,7 @@ if option=="Chat with Your Book":
         if st.session_state.button_clicked:
             Sucess=''
             st.write(Sucess)
-       
-        # Move the input box to the bottom of the page
-        st.write("-----")  # Add a separator
+        st.write("-----") 
 
         col1, col2 = st.columns([4, 1])
         with col1:
@@ -381,12 +378,10 @@ if option=="Chat with Your Book":
             Speak=st.button("Speak 🎙️")
         if Speak:
             st.write("please speak....")
-            prompt1=recognize_speech()
+            prompt1=takeCommand()
             st.write(f"You said: {prompt1}")
         st.markdown('<div class="fixed-bottom">', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
-      
-        # Handle user input and AI response
         if prompt1:
             if "vectors" in st.session_state:
                 document_chain = create_stuff_documents_chain(llm, prompt)
@@ -470,7 +465,7 @@ if option=="Chat with Your Book":
             Speak=st.button("Speak 🎙️")
         if Speak:
             st.write("please speak....")
-            prompt1=recognize_speech()
+            prompt1=takeCommand()
             st.write(f"You said: {prompt1}")
         st.markdown('<div class="fixed-bottom">', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -592,6 +587,7 @@ elif option=="Transcript Youtube Video ":
             summary=generate_gemini_content(prompt_template,number,transcript_text)
             st.markdown("## Detailed Notes:")
             st.write(summary)
+            speak(summary)
    
 
 
