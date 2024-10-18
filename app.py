@@ -16,8 +16,8 @@ import nest_asyncio
 from PIL import Image
 from langchain_groq import ChatGroq
 from langchain import LLMChain, PromptTemplate
+from utils import recognize_speech
 import google.generativeai as genai
-from utils import takeCommand
 from youtube_transcript_api import YouTubeTranscriptApi
 nest_asyncio.apply()
 try:
@@ -79,6 +79,15 @@ st.markdown(
         cursor: pointer;
     }
 
+    /* Custom inputs */
+    .stTextInput input {
+        border: 2px solid #2A9D8F;
+        border-radius: 5px;
+        padding: 10px;
+        font-size: 1.2rem;
+        width: 100%;
+        margin-top: 10px;
+    }
 
     /* Footer styles */
     .footer {
@@ -165,336 +174,306 @@ if option=="Chat with Your Book":
         if "messages" not in st.session_state:
             st.session_state.messages = []
 
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
         
-        Sucess=''
-        
-        if "button_clicked" not in st.session_state:
-            st.session_state.button_clicked = False
-
-        # Conditionally display the button only if it hasn't been clicked
-        if not st.session_state.button_clicked:
-            # Button updates the session state directly in the same run
-            if st.button("Read My Book"):
-                vector_embedding()
-                Sucess="Book Read Successfully"
-                st.success(Sucess)
-                st.session_state.button_clicked = True
-
-        if st.session_state.button_clicked:
-            Sucess=''
-            st.write(Sucess)
-
-
         # Button to embed documents
-        #if st.button("Read My Book "):
-            #vector_embedding()
-            #st.success("Read Your Book Successfully")
+        if st.button("Read My Book "):
+            vector_embedding()
+            st.success("Read Your Book Successfully")
 
-        
-        # Move the input box to the bottom of the page
-        st.write("-----")  # Add a separator
-
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            prompt1 = st.chat_input("What you want to know?")
-        with col2:
-            Speak=st.button("Speak 🎙️")
-        if Speak:
-            st.write("please speak....")
-            prompt1=takeCommand()
-            st.write(f"You said: {prompt1}")
-        st.markdown('<div class="fixed-bottom">', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-      
-        # Handle user input and AI response
-        if prompt1:
-            if "vectors" in st.session_state:
-                document_chain = create_stuff_documents_chain(llm, prompt)
-                retriever = st.session_state.vectors.as_retriever()
-                retrieval_chain = create_retrieval_chain(retriever, document_chain)
-                start = time.process_time()
-                response = retrieval_chain.invoke({'input': prompt1})
-                response_time = time.process_time() - start
-                
-                st.chat_message("user").markdown(prompt1)
-    # Add user message to chat history
-                st.session_state.messages.append({"role": "user", "content": prompt1})
-                st.write("Response Time:", response_time)
-                answer=response['answer']
-                response = f"Assistant: {answer}"
-    # Display assistant response in chat message container
-                with st.chat_message("assistant"):
-                    st.markdown(response)
-                # Add assistant response to chat history
-                speak(answer)
-                st.session_state.messages.append({"role": "assistant", "content": response})
-
-            else:
-                st.error("Please let me read the book by clicking  'Read My Book'.")
-                
-       
-
-
-    if selected_class==10:
-        st.markdown('<h2 class="header">Chatting with Class 10</h2>', unsafe_allow_html=True)
-    # Function to create vector embeddings
-        def vector_embedding():
-            if "vectors" not in st.session_state:
-                index_file = "faiss_index_10"
-                if os.path.exists(index_file):
-                    st.session_state.vectors = FAISS.load_local(index_file, CohereEmbeddings(model="multilingual-22-12"),allow_dangerous_deserialization=True)
-    
-
-        # Define prompt template
-        prompt = ChatPromptTemplate.from_template("""
-        Answer the questions based on the provided context only.
-        Please provide the most accurate response based on the question.
-        <context>
-        {context}
-        <context>
-        Questions: {input}
-        """)
-
-        # Initialize session state for storing chat history
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
-
+        # Display chat history
         for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-        Sucess=''
-        if "button_clicked" not in st.session_state:
-            st.session_state.button_clicked = False
-
-        # Conditionally display the button only if it hasn't been clicked
-        if not st.session_state.button_clicked:
-            # Button updates the session state directly in the same run
-            if st.button("Read My Book"):
-                vector_embedding()
-                Sucess="Book Read Successfully"
-                st.success(Sucess)
-                st.session_state.button_clicked = True
-
-        if st.session_state.button_clicked:
-            Sucess=''
-            st.write(Sucess)
-       
-
- 
-        st.write("-----")  
-
-
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            prompt1 = st.chat_input("What you want to know?")
-        with col2:
-            Speak=st.button("Speak 🎙️")
-        if Speak:
-            st.write("please speak....")
-            prompt1=takeCommand()
-            st.write(f"You said: {prompt1}")
-        st.markdown('<div class="fixed-bottom">', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-      
-
-        if prompt1:
-            if "vectors" in st.session_state:
-                document_chain = create_stuff_documents_chain(llm, prompt)
-                retriever = st.session_state.vectors.as_retriever()
-                retrieval_chain = create_retrieval_chain(retriever, document_chain)
-                start = time.process_time()
-                response = retrieval_chain.invoke({'input': prompt1})
-                response_time = time.process_time() - start
-                
-                st.chat_message("user").markdown(prompt1)
-
-                st.session_state.messages.append({"role": "user", "content": prompt1})
-                st.write("Response Time:", response_time)
-                answer=response['answer']
-                response = f"Assistant: {answer}"
-
-                with st.chat_message("assistant"):
-                    st.markdown(response)
-
-                speak(answer)
-                st.session_state.messages.append({"role": "assistant", "content": response})
-
-            else:
-                st.error("Please let me read the book by clicking  'Read My Book'.")
-
-    if selected_class==12:
-        st.markdown('<h2 class="header">Chatting with Class 12</h2>', unsafe_allow_html=True)
-
-        def vector_embedding():
-            if "vectors" not in st.session_state:
-                index_file = "faiss_index_12"
-                if os.path.exists(index_file):
-                    st.session_state.vectors = FAISS.load_local(index_file, CohereEmbeddings(model="multilingual-22-12"),allow_dangerous_deserialization=True)
-    
-
-  
-        prompt = ChatPromptTemplate.from_template("""
-        Answer the questions based on the provided context only.
-        Please provide the most accurate response based on the question.
-        <context>
-        {context}
-        <context>
-        Questions: {input}
-        """)
-
-        
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
-
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-
-        if "button_clicked" not in st.session_state:
-            st.session_state.button_clicked = False
-
-       
-        Sucess=''
-        if not st.session_state.button_clicked:
-         
-            if st.button("Read My Book"):
-                vector_embedding()
-                Sucess="Book Read Successfully"
-                st.success(Sucess)
-                st.session_state.button_clicked = True
-
-        if st.session_state.button_clicked:
-            Sucess=''
-            st.write(Sucess)
-        st.write("-----") 
-
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            prompt1 = st.chat_input("What you want to know?")
-        with col2:
-            Speak=st.button("Speak 🎙️")
-        if Speak:
-            st.write("please speak....")
-            prompt1=takeCommand()
-            st.write(f"You said: {prompt1}")
-        st.markdown('<div class="fixed-bottom">', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-        if prompt1:
-            if "vectors" in st.session_state:
-                document_chain = create_stuff_documents_chain(llm, prompt)
-                retriever = st.session_state.vectors.as_retriever()
-                retrieval_chain = create_retrieval_chain(retriever, document_chain)
-                start = time.process_time()
-                response = retrieval_chain.invoke({'input': prompt1})
-                response_time = time.process_time() - start
-                
-                st.chat_message("user").markdown(prompt1)
-    # Add user message to chat history
-                st.session_state.messages.append({"role": "user", "content": prompt1})
-                st.write("Response Time:", response_time)
-                answer=response['answer']
-                response = f"Assistant: {answer}"
-    # Display assistant response in chat message container
-                with st.chat_message("assistant"):
-                    st.markdown(response)
-                # Add assistant response to chat history
-                speak(answer)
-                st.session_state.messages.append({"role": "assistant", "content": response})
-
-            else:
-                st.error("Please let me read the book by clicking  'Read My Book'.")
-
-    if selected_class==9:
-        st.markdown('<h2 class="header">Chatting with Class 9</h2>', unsafe_allow_html=True)
-    # Function to create vector embeddings
-        def vector_embedding():
-            if "vectors" not in st.session_state:
-                index_file = "faiss_index_9"
-                if os.path.exists(index_file):
-                    st.session_state.vectors = FAISS.load_local(index_file, CohereEmbeddings(model="multilingual-22-12"),allow_dangerous_deserialization=True)
-    
-
-        # Define prompt template
-        prompt = ChatPromptTemplate.from_template("""
-        Answer the questions based on the provided context only.
-        Please provide the most accurate response based on the question.
-        <context>
-        {context}
-        <context>
-        Questions: {input}
-        """)
-
-        # Initialize session state for storing chat history
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
-
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-
-        
-        if "button_clicked" not in st.session_state:
-            st.session_state.button_clicked = False
-
-        # Conditionally display the button only if it hasn't been clicked
-        sucess=''
-        if not st.session_state.button_clicked:
-            # Button updates the session state directly in the same run
-            if st.button("Read My Book"):
-                vector_embedding()
-                Sucess="Book Read Successfully"
-                st.success(Sucess)
-                st.session_state.button_clicked = True
-
-        if st.session_state.button_clicked:
-            Sucess=''
-            st.write(Sucess)
-
+            st.write(message)
 
         # Move the input box to the bottom of the page
         st.write("-----")  # Add a separator
 
         # Input box for user to type in at the bottom
-        col1, col2 = st.columns([4, 1])
-        with col1:
-            prompt1 = st.chat_input("What you want to know?")
-        with col2:
-            Speak=st.button("Speak 🎙️")
-        if Speak:
+        prompt1 = st.text_input("You: ", key="input_box", placeholder="Type your message here...")
+
+        if st.button("Speak 🎙️"):
             st.write("please speak....")
-            prompt1=takeCommand()
+            prompt1=recognize_speech()
             st.write(f"You said: {prompt1}")
         st.markdown('<div class="fixed-bottom">', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
-      
+
         # Handle user input and AI response
         if prompt1:
             if "vectors" in st.session_state:
-                st.chat_message("user").markdown(prompt1)
                 document_chain = create_stuff_documents_chain(llm, prompt)
                 retriever = st.session_state.vectors.as_retriever()
                 retrieval_chain = create_retrieval_chain(retriever, document_chain)
                 start = time.process_time()
                 response = retrieval_chain.invoke({'input': prompt1})
                 response_time = time.process_time() - start
-
-    # Add user message to chat history
-                st.session_state.messages.append({"role": "user", "content": prompt1})
+                
+                # Display response and chat history
+                st.session_state.messages.append(f"You: {prompt1}")
+                st.session_state.messages.append(f"AI: {response['answer']}")
                 st.write("Response Time:", response_time)
+                st.write(response['answer'])
                 answer=response['answer']
-                response = f"Assistant: {answer}"
-    # Display assistant response in chat message container
-                with st.chat_message("assistant"):
-                    st.markdown(response)
-
                 speak(answer)
-                st.session_state.messages.append({"role": "assistant", "content": response})
+                # Clear the input box by resetting the text input
+                st.session_state.input = ""
 
             else:
                 st.error("Please let me read the book by clicking  'Read My Book'.")
+
+
+        # Reset chat history
+        if st.button("Clear Chat"):
+            st.session_state.messages = []
+
+    if selected_class==10:
+        st.markdown('<h2 class="header">Chatting with Class 10</h2>', unsafe_allow_html=True)
+        # Ensure the Google API key is retrieved correctly
+        #Cohere_API_KEY = os.getenv("COHERE_API_KEY")
+        Groq_API_KEY = os.getenv("GROQ_API_KEY")
+        llm=ChatGroq(groq_api_key=Groq_API_KEY,model_name="Llama3-8b-8192")
+
+    # Initialize LLM with synchronous method
+        #llm =Cohere(model="command", temperature=0, cohere_api_key=Cohere_API_KEY)
+        # Function to create vector embeddings
+        def vector_embedding():
+            if "vectors" not in st.session_state:
+                index_file = "faiss_index_10"
+                if os.path.exists(index_file):
+                    st.session_state.vectors = FAISS.load_local(index_file, CohereEmbeddings(model="multilingual-22-12"),allow_dangerous_deserialization=True)
+                
+            # Define prompt template
+        prompt = ChatPromptTemplate.from_template("""
+        Answer the questions based on the provided context only.
+        Please provide the most accurate response based on the question.
+        <context>
+        {context}
+        <context>
+        Questions: {input}
+        """)
+
+            # Initialize session state for storing chat history
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+
+            # Streamlit UI
+        
+
+            # Button to embed documents
+        if st.button("Read My Book "):
+            vector_embedding()
+            st.success("Read Your Book Successfully")
+
+            # Display chat history
+        for message in st.session_state.messages :
+            st.write(message)
+
+            # Move the input box to the bottom of the page
+        st.write("-----")  # Add a separator
+
+            # Input box for user to type in at the bottom
+        prompt1 = st.text_input("You: ", key="input_box", placeholder="Type your message here...")
+        if st.button("Speak 🎙️"):
+            st.write("please speak....")
+            prompt1=recognize_speech()
+            st.write(f"You said: {prompt1}")
+
+        st.markdown('<div class="fixed-bottom">', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+            # Handle user input and AI response
+        if prompt1:
+            if "vectors" in st.session_state:
+                document_chain = create_stuff_documents_chain(llm, prompt)
+                retriever = st.session_state.vectors.as_retriever()
+                retrieval_chain = create_retrieval_chain(retriever, document_chain)
+                start = time.process_time()
+                response = retrieval_chain.invoke({'input': prompt1})
+                response_time = time.process_time() - start
+                    
+                    # Display response and chat history
+                st.session_state.messages.append(f"You: {prompt1}")
+                st.session_state.messages.append(f"AI: {response['answer']}")
+                st.write("Response Time:", response_time)
+                st.write(response['answer'])
+                answer=response['answer']
+                speak(answer)
+                    # Clear the input box by resetting the text input
+                st.session_state.input = ""
+
+            else:
+                st.error("Please let me read the book by clicking  'Read My Book'.")
+
+
+            # Reset chat history
+        if st.button("Clear Chat"):
+            st.session_state.messages = []
+
+    if selected_class==9:
+        st.markdown('<h2 class="header">Chatting with Class 9</h2>', unsafe_allow_html=True)
+        # Ensure the Google API key is retrieved correctly
+        #Cohere_API_KEY = os.getenv("COHERE_API_KEY")
+        Groq_API_KEY = os.getenv("GROQ_API_KEY")
+        llm=ChatGroq(groq_api_key=Groq_API_KEY,model_name="Llama3-8b-8192")
+
+    # Initialize LLM with synchronous method
+        #llm =Cohere(model="command", temperature=0, cohere_api_key=Cohere_API_KEY)
+        # Function to create vector embeddings
+        def vector_embedding():
+            if "vectors" not in st.session_state:
+                index_file = "faiss_index_9"
+                if os.path.exists(index_file):
+                    st.session_state.vectors = FAISS.load_local(index_file, CohereEmbeddings(model="multilingual-22-12"),allow_dangerous_deserialization=True)
+                
+            # Define prompt template
+        prompt = ChatPromptTemplate.from_template("""
+        Answer the questions based on the provided context only.
+        Please provide the most accurate response based on the question.
+        <context>
+        {context}
+        <context>
+        Questions: {input}
+        """)
+
+            # Initialize session state for storing chat history
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+
+            # Streamlit UI
+        
+
+            # Button to embed documents
+        if st.button("Read My Book "):
+            vector_embedding()
+            st.success("Read Your Book Successfully")
+
+            # Display chat history
+        for message in st.session_state.messages :
+            st.write(message)
+
+            # Move the input box to the bottom of the page
+        st.write("-----")  # Add a separator
+
+            # Input box for user to type in at the bottom
+        prompt1 = st.text_input("You: ", key="input_box", placeholder="Type your message here...")
+        if st.button("Speak 🎙️"):
+            st.write("please speak....")
+            prompt1=recognize_speech()
+            st.write(f"You said: {prompt1}")
+
+        st.markdown('<div class="fixed-bottom">', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+            # Handle user input and AI response
+        if prompt1:
+            if "vectors" in st.session_state:
+                document_chain = create_stuff_documents_chain(llm, prompt)
+                retriever = st.session_state.vectors.as_retriever()
+                retrieval_chain = create_retrieval_chain(retriever, document_chain)
+                start = time.process_time()
+                response = retrieval_chain.invoke({'input': prompt1})
+                response_time = time.process_time() - start
+                    
+                    # Display response and chat history
+                st.session_state.messages.append(f"You: {prompt1}")
+                st.session_state.messages.append(f"AI: {response['answer']}")
+                st.write("Response Time:", response_time)
+                st.write(response['answer'])
+                answer=response['answer']
+                speak(answer)
+                    # Clear the input box by resetting the text input
+                st.session_state.input = ""
+
+            else:
+                st.error("Please let me read the book by clicking  'Read My Book'.")
+
+            # Reset chat history
+        if st.button("Clear Chat"):
+            st.session_state.messages = []
+
+
+    if selected_class==12:
+        st.markdown('<h2 class="header">Chatting with Class 12</h2>', unsafe_allow_html=True)
+
+        # Ensure the Google API key is retrieved correctly
+        #Cohere_API_KEY = os.getenv("COHERE_API_KEY")
+        Groq_API_KEY = os.getenv("GROQ_API_KEY")
+        llm=ChatGroq(groq_api_key=Groq_API_KEY,model_name="Llama3-8b-8192")
+
+    # Initialize LLM with synchronous method
+        #llm =Cohere(model="command", temperature=0, cohere_api_key=Cohere_API_KEY)
+        # Function to create vector embeddings
+        def vector_embedding():
+            if "vectors" not in st.session_state:
+                index_file = "faiss_index_12"
+                if os.path.exists(index_file):
+                    st.session_state.vectors = FAISS.load_local(index_file, CohereEmbeddings(model="multilingual-22-12"),allow_dangerous_deserialization=True)
+                
+            # Define prompt template
+        prompt = ChatPromptTemplate.from_template("""
+        Answer the questions based on the provided context only.
+        Please provide the most accurate response based on the question.
+        <context>
+        {context}
+        <context>
+        Questions: {input}
+        """)
+
+            # Initialize session state for storing chat history
+        if "messages" not in st.session_state:
+            st.session_state.messages = []
+
+            # Streamlit UI
+
+
+            # Button to embed documents
+        if st.button("Read My Book "):
+            vector_embedding()
+            st.success("Read Your Book Successfully")
+
+            # Display chat history
+        for message in st.session_state.messages :
+            st.write(message)
+
+            # Move the input box to the bottom of the page
+        st.write("-----")  # Add a separator
+
+            # Input box for user to type in at the bottom
+        prompt1 = st.text_input("You: ", key="input_box", placeholder="Type your message here...")
+        if st.button("Speak 🎙️"):
+            st.write("please speak....")
+            prompt1=recognize_speech()
+            st.write(f"You said: {prompt1}")
+
+        st.markdown('<div class="fixed-bottom">', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+            # Handle user input and AI response
+        if prompt1:
+            if "vectors" in st.session_state:
+                document_chain = create_stuff_documents_chain(llm, prompt)
+                retriever = st.session_state.vectors.as_retriever()
+                retrieval_chain = create_retrieval_chain(retriever, document_chain)
+                start = time.process_time()
+                response = retrieval_chain.invoke({'input': prompt1})
+                response_time = time.process_time() - start
+                    
+                    # Display response and chat history
+                st.session_state.messages.append(f"You: {prompt1}")
+                st.session_state.messages.append(f"AI: {response['answer']}")
+                st.write("Response Time:", response_time)
+                st.write(response['answer'])
+                answer=response['answer']
+                speak(answer)
+                    # Clear the input box by resetting the text input
+                st.session_state.input = ""
+
+            else:
+                st.error("Please let me read the book by clicking  'Read My Book'.")
+
+            # Reset chat history
+        if st.button("Clear Chat"):
+            st.session_state.messages = []
+
 
 
 
@@ -540,13 +519,13 @@ elif option=="Get Solution from Image":
 
 elif option=="Transcript Youtube Video ":
     st.markdown('<h1 class="title">Transcript Youtube Video </h1>', unsafe_allow_html=True)
+    genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-    prompt="""You are a highly knowledgeable AI specialized in text summarization for educational content creation.
-        Generate a summary of exactly {number} words based on the following text: "{text}".
-        Ensure the summary captures the key points and is concise and informative.
-        """
+    prompt="""You are Yotube video summarizer. You will be taking the transcript text
+    and summarizing the entire video and providing the important summary in points
+    within 250 words. Please provide the summary of the text given here:  """
 
-    prompt_template = PromptTemplate(input_variables=["number","text"],template=prompt)
+
 ## getting the transcript data from yt videos
     def extract_transcript_details(youtube_video_url):
         try:
@@ -563,18 +542,15 @@ elif option=="Transcript Youtube Video ":
         except Exception as e:
             raise e
 
-    def generate_gemini_content(prompt_template,number,text):
+    def generate_gemini_content(transcript_text,prompt):
 
-        #model=genai.GenerativeModel("gemini-pro")
-        Groq_API_KEY = os.getenv("GROQ_API_KEY")
-        llm=ChatGroq(groq_api_key=Groq_API_KEY,model_name="Llama3-8b-8192")
-        chain =LLMChain(llm=llm, prompt=prompt_template, verbose=True)
-        response = chain.run({"number":number,"text":text})
-        return response
+        model=genai.GenerativeModel("gemini-pro")
+        response=model.generate_content(prompt+transcript_text)
+        return response.text
 
-
+    st.title("YouTube Transcript ")
     youtube_link = st.text_input("Enter YouTube Video Link:")
-    number = st.slider("Select the number of lines for the summary", 50, 200, 50)
+
     if youtube_link:
         video_id = youtube_link.split("=")[1]
         print(video_id)
@@ -584,12 +560,9 @@ elif option=="Transcript Youtube Video ":
         transcript_text=extract_transcript_details(youtube_link)
 
         if transcript_text:
-            summary=generate_gemini_content(prompt_template,number,transcript_text)
+            summary=generate_gemini_content(transcript_text,prompt)
             st.markdown("## Detailed Notes:")
             st.write(summary)
-            speak(summary)
-   
-
 
 elif option=="Genrate Practice MCQ":
     st.markdown('<h1 class="title">Genrate Practice MCQ</h1>', unsafe_allow_html=True)
