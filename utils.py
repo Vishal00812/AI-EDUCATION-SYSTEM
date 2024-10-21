@@ -1,24 +1,28 @@
 import speech_recognition as sr
-def recognize_speech():
-    # Initialize the recognizer
-    recognizer = sr.Recognizer()
+import time
+from gtts import gTTS  # new import
+from io import BytesIO 
+def speak(text):
+    audio_bytes = BytesIO()
+    tts = gTTS(text=text, lang="en")
+    tts.write_to_fp(audio_bytes)
+    audio_bytes.seek(0)
+    return audio_bytes.read()
 
-    # Use the microphone as the source of input
+
+
+def takeCommand():
+    #It takes microphone input from the user and returns string output
+
+    r = sr.Recognizer()
     with sr.Microphone() as source:
-        
-        # Adjust for ambient noise
-        recognizer.adjust_for_ambient_noise(source)
-        
-        # Listen to the speech
-        audio = recognizer.listen(source)
+        r.pause_threshold = 1
+        audio = r.listen(source)
 
-        try:
-            # Recognize the speech using Google Web Speech API
-            text = recognizer.recognize_google(audio)
-            return text
-        except sr.UnknownValueError:
-            text="Sorry, I could not understand the audio."
-            return text
-        except sr.RequestError:
-            text="Sorry, my speech recognition service is down."
-            return text
+    try:
+        query = r.recognize_google(audio, language='en-in')
+
+    except Exception as e:
+
+        return "None"
+    return query
