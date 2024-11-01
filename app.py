@@ -20,7 +20,7 @@ import google.generativeai as genai
 from utils import takeCommand
 from youtube_transcript_api import YouTubeTranscriptApi
 from utils import class_9_subjects , class_10_subjects , class_11_subjects , class_12_subjects
-
+import re
 nest_asyncio.apply()
 try:
     loop = asyncio.get_running_loop()
@@ -655,357 +655,389 @@ elif option=="Self Assesment" :
     class_options = ['Class 9', 'Class 10', 'Class 11', 'Class 12']
     selected_class = st.selectbox("Select Your Class", ['Select Class']+class_options)
     if selected_class == "Class 9":
-            st.markdown('<h2 class="header">Self Assesment 9</h2>', unsafe_allow_html=True)
-            subject_option = st.selectbox("Select Subject", ["Select"] + list(class_9_subjects.keys()))
-            if subject_option != "Select":
-                chapters = class_9_subjects.get(subject_option, [])
-                chapter_option = st.selectbox("Select Chapter", ["Select"] + chapters)
-                if chapter_option != "Select":
-                    st.write(f"You have selected: **{chapter_option}**")
-                    def vector_embedding():
-                        if "vectors" not in st.session_state:
-                            index_file = "faiss_index_9"
-                            if os.path.exists(index_file):
-                                st.session_state.vectors = FAISS.load_local(
-                                    index_file, CohereEmbeddings(model="multilingual-22-12"), allow_dangerous_deserialization=True
-                                )
-                            else:
-                                st.error("Index file not found. Please check the path.")
-                    vector_embedding()
-                    PROMPT_TEMPLATE_STRING = """
-                    Based on the CBSE Class 9 , generate a question in the form of a complete sentence:
-                                        Create a question about the following chapter: {Chapter}
-                                        
-                                        Provide only the question as the output, with no additional text. 
+                subject_option = st.selectbox("Select Subject", ["Select"] + list(class_9_subjects.keys()))
+                if subject_option != "Select":
+                    chapters = class_9_subjects.get(subject_option, [])
+                    chapter_option = st.selectbox("Select Chapter", ["Select"] + chapters)
+                    if chapter_option != "Select":
+                        st.write(f"You have selected: **{chapter_option}**")
+                        def vector_embedding():
+                            if "vectors" not in st.session_state:
+                                index_file = "faiss_index_9"
+                                if os.path.exists(index_file):
+                                    st.session_state.vectors = FAISS.load_local(
+                                        index_file, CohereEmbeddings(model="multilingual-22-12"), allow_dangerous_deserialization=True
+                                    )
+                                else:
+                                    st.error("Index file not found. Please check the path.")
+                        vector_embedding()
+                        PROMPT_TEMPLATE_STRING = """
+                        Based on the CBSE Class 9 , generate a question in the form of a complete sentence:
+                                            Create a question about the following chapter: {Chapter}
+                                            
+                                            Provide only the question as the output, with no additional text. 
+                            """
+                        prompt_template = PromptTemplate(input_variables=["Chapter"],template=PROMPT_TEMPLATE_STRING)
+                        PROMPT_TEMPLATE_STRING2 ="""
+                        Evaluate the provided answer based strictly on CBSE Class 9 standards, assigning marks out of 1. Deduct marks for any inaccuracies, even minor ones. If the final score is 0.6 or higher, round it up to 1. Provide only the marks as the output.
+
+                            Question: {input}
+                            Answer: {answer}
+
+                            Output the marks out of 1.
                         """
-                    prompt_template = PromptTemplate(input_variables=["Chapter"],template=PROMPT_TEMPLATE_STRING)
-                    prompt2 = ChatPromptTemplate.from_template("""\
-                        Evaluate the provided answer strictly based on the given context only, and assign marks out of 1.
-                        Consider even minor inaccuracies when deducting marks. If the given marks are equal or greter than 0.6, round up to 1.
-                        Provide only the marks as the output.
+                        prompt_template2 = PromptTemplate(input_variables=["input","answer"],template=PROMPT_TEMPLATE_STRING2)
+                        PROMPT_TEMPLATE_STRING3="""
+                        Provide a clear and accurate answer to the following question based on CBSE Class 9 standards.
 
-                        <context>
-                        {context}
-                        <context>
+                        Question: {question}
 
-                        Question: {input}
-                        Answer: {answer}
-
-                        Output the marks out of 1.
-                    """)
-                    load_dotenv()
-                    Groq_API_KEY = os.getenv("GROQ_API_KEY")
-                    llm = ChatGroq(groq_api_key=Groq_API_KEY, model_name="Llama3-8b-8192")
-                    prompt1 = chapter_option 
-                    num_questions = st.number_input("Enter the number of questions you want", min_value=1,max_value=15, step=1)
-                    if "marks" not in st.session_state:
-                        st.session_state.marks = []
-                    if "questions" not in st.session_state:
-                        st.session_state.questions = []
-                    if "answers" not in st.session_state:
-                        st.session_state.answers = {}
-                    if "generated_questions" not in st.session_state:
-                        st.session_state.generated_questions = set()
-                    if prompt1:
-                        question_chain = LLMChain(llm=llm, prompt=prompt_template, verbose=True)
-                        question = question_chain.run({"Chapter":prompt1})
-                        while len(st.session_state.questions) < num_questions:
-                            if question not in st.session_state.generated_questions:
-                                st.session_state.questions.append(question)
-                                st.session_state.generated_questions.add(question)
-                            if len(st.session_state.questions) >= num_questions:
-                                break
-                    for i in range(num_questions):
-                        if i < len(st.session_state.questions):
-                            st.write(f"### Question {i + 1}: {st.session_state.questions[i]}")
-                            answer_key = f"answer_{i}" 
-                            answer = st.text_input(f"Enter your answer for Question {i + 1}", 
-                                                key=answer_key, 
-                                                value=st.session_state.answers.get(answer_key, ""))
-                            if st.button(f"Submit Answer for Question {i + 1}", key=f"submit_{i}"):
-                                if answer:
-                                    st.session_state.answers[answer_key] = answer
-                                    document_chain = create_stuff_documents_chain(llm, prompt2)
-                                    retriever = st.session_state.vectors.as_retriever()
-                                    retrieval_chain = create_retrieval_chain(retriever, document_chain)
-                                    response = retrieval_chain.invoke({
-                                        'input': st.session_state.questions[i], 
-                                        'answer': answer
-                                    })
-                                    marks = float(response['answer'])
-                                    if(marks>=0.6):
-                                        marks=1
-                                    else:
-                                        marks=0 
-                                    st.session_state.marks.append(marks)
-                                    st.write(f"Marks for Question {i + 1}: {marks}/1")
-                    if st.session_state.marks:
-                        total_marks = sum(st.session_state.marks)
-                        st.write(f"### Total Marks: {total_marks} out of {num_questions * 1}")
+                        Output the answer only .
+                        """
+                        prompt_template3 = PromptTemplate(input_variables=["question"],template=PROMPT_TEMPLATE_STRING3)
+                        load_dotenv()
+                        
+                        Groq_API_KEY = os.getenv("GROQ_API_KEY")
+                        llm = ChatGroq(groq_api_key=Groq_API_KEY, model_name="Llama3-8b-8192")
+                        prompt1 = chapter_option 
+                        num_questions = st.number_input("Enter the number of questions you want", min_value=1,max_value=15, step=1)
+                        if "marks" not in st.session_state:
+                            st.session_state.marks = []
+                        if "questions" not in st.session_state:
+                            st.session_state.questions = []
+                        if "answers" not in st.session_state:
+                            st.session_state.answers = {}
+                        if "generated_questions" not in st.session_state:
+                            st.session_state.generated_questions = set()
+                        if "suggestion" not in st.session_state:
+                            st.session_state.suggestion = []
+                        if prompt1:
+                            question_chain = LLMChain(llm=llm, prompt=prompt_template, verbose=True)
+                            question = question_chain.run({"Chapter":prompt1})
+                            while len(st.session_state.questions) < num_questions:
+                                if question not in st.session_state.generated_questions:
+                                    st.session_state.questions.append(question)
+                                    st.session_state.generated_questions.add(question)
+                                if len(st.session_state.questions) >= num_questions:
+                                    break
+                        for i in range(num_questions):
+                            if i < len(st.session_state.questions):
+                                st.write(f"### Question {i + 1}: {st.session_state.questions[i]}")
+                                answer_key = f"answer_{i}" 
+                                answer = st.text_area(f"Enter your answer for Question {i + 1}", 
+                                                    key=answer_key, 
+                                                    value=st.session_state.answers.get(answer_key, ""))
+                                if st.button(f"Submit Answer for Question {i + 1}", key=f"submit_{i}"):
+                                    if answer:
+                                        st.session_state.answers[answer_key] = answer
+                                        response_chain = LLMChain(llm=llm, prompt=prompt_template2, verbose=True)
+                                        response = response_chain.run({"input":st.session_state.questions[i],'answer':answer})
+                                        suggested_chain = LLMChain(llm=llm, prompt=prompt_template3, verbose=True)
+                                        response = response_chain.run({"input":st.session_state.questions[i],'answer':answer})
+                                        suggestion = suggested_chain.run({"question":st.session_state.questions[i]})
+                                        match = re.search(r'\d+(\.\d+)?', response)
+                                        if match:
+                                            marks = float(match.group())
+                                            # Rounding the score as per your logic
+                                            marks = 1 if marks >= 0.6 else 0
+                                        else:
+                                            marks = 0
+                                        st.session_state.marks.append(marks)
+                                        st.session_state.suggestion.append(suggestion)
+                                        st.write(f"Suggested Answer {i + 1}: {suggestion}")
+                                        st.write(f"Marks for Question {i + 1}: {marks}/1")
+                        if st.session_state.marks:
+                            total_marks = sum(st.session_state.marks)
+                            st.write(f"### Total Marks: {total_marks} out of {num_questions * 1}")
 
     elif selected_class == "Class 10":
-            st.markdown('<h2 class="header">Self Assesment 10</h2>', unsafe_allow_html=True)
-            subject_option = st.selectbox("Select Subject", ["Select"] + list(class_10_subjects.keys()))
-            if subject_option != "Select":
-                chapters = class_10_subjects.get(subject_option, [])
-                chapter_option = st.selectbox("Select Chapter", ["Select"] + chapters)
-                if chapter_option != "Select":
-                    st.write(f"You have selected: **{chapter_option}**")
-                    def vector_embedding():
-                        if "vectors" not in st.session_state:
-                            index_file = "faiss_index_10"
-                            if os.path.exists(index_file):
-                                st.session_state.vectors = FAISS.load_local(
-                                    index_file, CohereEmbeddings(model="multilingual-22-12"), allow_dangerous_deserialization=True
-                                )
-                            else:
-                                st.error("Index file not found. Please check the path.")
-                    vector_embedding()
-                    PROMPT_TEMPLATE_STRING = """
-                    Based on the CBSE Class 10 , generate a question in the form of a complete sentence:
-                                        Create a question about the following chapter: {Chapter}
-                                        
-                                        Provide only the question as the output, with no additional text. 
+                subject_option = st.selectbox("Select Subject", ["Select"] + list(class_10_subjects.keys()))
+                if subject_option != "Select":
+                    chapters = class_10_subjects.get(subject_option, [])
+                    chapter_option = st.selectbox("Select Chapter", ["Select"] + chapters)
+                    if chapter_option != "Select":
+                        st.write(f"You have selected: **{chapter_option}**")
+                        def vector_embedding():
+                            if "vectors" not in st.session_state:
+                                index_file = "faiss_index_10"
+                                if os.path.exists(index_file):
+                                    st.session_state.vectors = FAISS.load_local(
+                                        index_file, CohereEmbeddings(model="multilingual-22-12"), allow_dangerous_deserialization=True
+                                    )
+                                else:
+                                    st.error("Index file not found. Please check the path.")
+                        vector_embedding()
+                        PROMPT_TEMPLATE_STRING = """
+                        Based on the CBSE Class 10 , generate a question in the form of a complete sentence:
+                                            Create a question about the following chapter: {Chapter}
+                                            
+                                            Provide only the question as the output, with no additional text. 
+                            """
+                        prompt_template = PromptTemplate(input_variables=["Chapter"],template=PROMPT_TEMPLATE_STRING)
+                        PROMPT_TEMPLATE_STRING2 ="""
+                        Evaluate the provided answer based strictly on CBSE Class 10 standards, assigning marks out of 1. Deduct marks for any inaccuracies, even minor ones. If the final score is 0.6 or higher, round it up to 1. Provide only the marks as the output.
+
+                            Question: {input}
+                            Answer: {answer}
+
+                            Output the marks out of 1.
                         """
-                    prompt_template = PromptTemplate(input_variables=["Chapter"],template=PROMPT_TEMPLATE_STRING)
-                    prompt2 = ChatPromptTemplate.from_template("""\
-                        Evaluate the provided answer strictly based on the given context only, and assign marks out of 1.
-                        Consider even minor inaccuracies when deducting marks. If the given marks are equal or greter than 0.6, round up to 1.
-                        Provide only the marks as the output.
+                        prompt_template2 = PromptTemplate(input_variables=["input","answer"],template=PROMPT_TEMPLATE_STRING2)
+                        PROMPT_TEMPLATE_STRING3="""
+                        Provide a clear and accurate answer to the following question based on CBSE Class 10 standards.
 
-                        <context>
-                        {context}
-                        <context>
+                        Question: {question}
 
-                        Question: {input}
-                        Answer: {answer}
+                        Output the answer only .
+                        """
+                        prompt_template3 = PromptTemplate(input_variables=["question"],template=PROMPT_TEMPLATE_STRING3)
+                        load_dotenv()
+                        
+                        Groq_API_KEY = os.getenv("GROQ_API_KEY")
+                        llm = ChatGroq(groq_api_key=Groq_API_KEY, model_name="Llama3-8b-8192")
+                        prompt1 = chapter_option 
+                        num_questions = st.number_input("Enter the number of questions you want", min_value=1,max_value=15, step=1)
+                        if "marks" not in st.session_state:
+                            st.session_state.marks = []
+                        if "questions" not in st.session_state:
+                            st.session_state.questions = []
+                        if "answers" not in st.session_state:
+                            st.session_state.answers = {}
+                        if "generated_questions" not in st.session_state:
+                            st.session_state.generated_questions = set()
+                        if "suggestion" not in st.session_state:
+                            st.session_state.suggestion = []
+                        if prompt1:
+                            question_chain = LLMChain(llm=llm, prompt=prompt_template, verbose=True)
+                            question = question_chain.run({"Chapter":prompt1})
+                            while len(st.session_state.questions) < num_questions:
+                                if question not in st.session_state.generated_questions:
+                                    st.session_state.questions.append(question)
+                                    st.session_state.generated_questions.add(question)
+                                if len(st.session_state.questions) >= num_questions:
+                                    break
+                        for i in range(num_questions):
+                            if i < len(st.session_state.questions):
+                                st.write(f"### Question {i + 1}: {st.session_state.questions[i]}")
+                                answer_key = f"answer_{i}" 
+                                answer = st.text_area(f"Enter your answer for Question {i + 1}", 
+                                                    key=answer_key, 
+                                                    value=st.session_state.answers.get(answer_key, ""))
+                                if st.button(f"Submit Answer for Question {i + 1}", key=f"submit_{i}"):
+                                    if answer:
+                                        st.session_state.answers[answer_key] = answer
+                                        response_chain = LLMChain(llm=llm, prompt=prompt_template2, verbose=True)
+                                        response = response_chain.run({"input":st.session_state.questions[i],'answer':answer})
+                                        suggested_chain = LLMChain(llm=llm, prompt=prompt_template3, verbose=True)
+                                        response = response_chain.run({"input":st.session_state.questions[i],'answer':answer})
+                                        suggestion = suggested_chain.run({"question":st.session_state.questions[i]})
+                                        match = re.search(r'\d+(\.\d+)?', response)
+                                        if match:
+                                            marks = float(match.group())
+                                            # Rounding the score as per your logic
+                                            marks = 1 if marks >= 0.6 else 0
+                                        else:
+                                            marks = 0
+                                        st.session_state.marks.append(marks)
+                                        st.session_state.suggestion.append(suggestion)
+                                        st.write(f"Suggested Answer {i + 1}: {suggestion}")
+                                        st.write(f"Marks for Question {i + 1}: {marks}/1")
+                        if st.session_state.marks:
+                            total_marks = sum(st.session_state.marks)
+                            st.write(f"### Total Marks: {total_marks} out of {num_questions * 1}")
 
-                        Output the marks out of 1.
-                    """)
-                    load_dotenv()
-                    Groq_API_KEY = os.getenv("GROQ_API_KEY")
-                    llm = ChatGroq(groq_api_key=Groq_API_KEY, model_name="Llama3-8b-8192")
-                    prompt1 = chapter_option 
-                    num_questions = st.number_input("Enter the number of questions you want", min_value=1,max_value=15, step=1)
-                    if "marks" not in st.session_state:
-                        st.session_state.marks = []
-                    if "questions" not in st.session_state:
-                        st.session_state.questions = []
-                    if "answers" not in st.session_state:
-                        st.session_state.answers = {}
-                    if "generated_questions" not in st.session_state:
-                        st.session_state.generated_questions = set()
-                    if prompt1:
-                        question_chain = LLMChain(llm=llm, prompt=prompt_template, verbose=True)
-                        question = question_chain.run({"Chapter":prompt1})
-                        while len(st.session_state.questions) < num_questions:
-                            if question not in st.session_state.generated_questions:
-                                st.session_state.questions.append(question)
-                                st.session_state.generated_questions.add(question)
-                            if len(st.session_state.questions) >= num_questions:
-                                break
-                    for i in range(num_questions):
-                        if i < len(st.session_state.questions):
-                            st.write(f"### Question {i + 1}: {st.session_state.questions[i]}")
-                            answer_key = f"answer_{i}" 
-                            answer = st.text_input(f"Enter your answer for Question {i + 1}", 
-                                                key=answer_key, 
-                                                value=st.session_state.answers.get(answer_key, ""))
-                            if st.button(f"Submit Answer for Question {i + 1}", key=f"submit_{i}"):
-                                if answer:
-                                    st.session_state.answers[answer_key] = answer
-                                    document_chain = create_stuff_documents_chain(llm, prompt2)
-                                    retriever = st.session_state.vectors.as_retriever()
-                                    retrieval_chain = create_retrieval_chain(retriever, document_chain)
-                                    response = retrieval_chain.invoke({
-                                        'input': st.session_state.questions[i], 
-                                        'answer': answer
-                                    })
-                                    marks = float(response['answer'])
-                                    if(marks>=0.6):
-                                        marks=1
-                                    else:
-                                        marks=0 
-                                    st.session_state.marks.append(marks)
-                                    st.write(f"Marks for Question {i + 1}: {marks}/1")
-                    if st.session_state.marks:
-                        total_marks = sum(st.session_state.marks)
-                        st.write(f"### Total Marks: {total_marks} out of {num_questions * 1}")
 
     elif selected_class == "Class 11":
-            st.markdown('<h2 class="header">Self Assesment 11</h2>', unsafe_allow_html=True)
-            subject_option = st.selectbox("Select Subject", ["Select"] + list(class_11_subjects.keys()))
-            if subject_option != "Select":
-                chapters = class_11_subjects.get(subject_option, [])
-                chapter_option = st.selectbox("Select Chapter", ["Select"] + chapters)
-                if chapter_option != "Select":
-                    st.write(f"You have selected: **{chapter_option}**")
-                    def vector_embedding():
-                        if "vectors" not in st.session_state:
-                            index_file = "faiss_index_11"
-                            if os.path.exists(index_file):
-                                st.session_state.vectors = FAISS.load_local(
-                                    index_file, CohereEmbeddings(model="multilingual-22-12"), allow_dangerous_deserialization=True
-                                )
-                            else:
-                                st.error("Index file not found. Please check the path.")
-                    vector_embedding()
-                    PROMPT_TEMPLATE_STRING = """
-                    Based on the CBSE Class 11 , generate a question in the form of a complete sentence:
-                                        Create a question about the following chapter: {Chapter}
-                                        
-                                        Provide only the question as the output, with no additional text. 
+                subject_option = st.selectbox("Select Subject", ["Select"] + list(class_11_subjects.keys()))
+                if subject_option != "Select":
+                    chapters = class_11_subjects.get(subject_option, [])
+                    chapter_option = st.selectbox("Select Chapter", ["Select"] + chapters)
+                    if chapter_option != "Select":
+                        st.write(f"You have selected: **{chapter_option}**")
+                        def vector_embedding():
+                            if "vectors" not in st.session_state:
+                                index_file = "faiss_index_11"
+                                if os.path.exists(index_file):
+                                    st.session_state.vectors = FAISS.load_local(
+                                        index_file, CohereEmbeddings(model="multilingual-22-12"), allow_dangerous_deserialization=True
+                                    )
+                                else:
+                                    st.error("Index file not found. Please check the path.")
+                        vector_embedding()
+                        PROMPT_TEMPLATE_STRING = """
+                        Based on the CBSE Class 11 , generate a question in the form of a complete sentence:
+                                            Create a question about the following chapter: {Chapter}
+                                            
+                                            Provide only the question as the output, with no additional text. 
+                            """
+                        prompt_template = PromptTemplate(input_variables=["Chapter"],template=PROMPT_TEMPLATE_STRING)
+                        PROMPT_TEMPLATE_STRING2 ="""
+                        Evaluate the provided answer based strictly on CBSE Class 11 standards, assigning marks out of 1. Deduct marks for any inaccuracies, even minor ones. If the final score is 0.6 or higher, round it up to 1. Provide only the marks as the output.
+
+                            Question: {input}
+                            Answer: {answer}
+
+                            Output the marks out of 1.
                         """
-                    prompt_template = PromptTemplate(input_variables=["Chapter"],template=PROMPT_TEMPLATE_STRING)
-                    prompt2 = ChatPromptTemplate.from_template("""\
-                        Evaluate the provided answer strictly based on the given context only, and assign marks out of 1.
-                        Consider even minor inaccuracies when deducting marks. If the given marks are equal or greter than 0.6, round up to 1.
-                        Provide only the marks as the output.
+                        prompt_template2 = PromptTemplate(input_variables=["input","answer"],template=PROMPT_TEMPLATE_STRING2)
+                        PROMPT_TEMPLATE_STRING3="""
+                        Provide a clear and accurate answer to the following question based on CBSE Class 11 standards.
 
-                        <context>
-                        {context}
-                        <context>
+                        Question: {question}
 
-                        Question: {input}
-                        Answer: {answer}
-
-                        Output the marks out of 1.
-                    """)
-                    load_dotenv()
-                    Groq_API_KEY = os.getenv("GROQ_API_KEY")
-                    llm = ChatGroq(groq_api_key=Groq_API_KEY, model_name="Llama3-8b-8192")
-                    prompt1 = chapter_option 
-                    num_questions = st.number_input("Enter the number of questions you want", min_value=1,max_value=15, step=1)
-                    if "marks" not in st.session_state:
-                        st.session_state.marks = []
-                    if "questions" not in st.session_state:
-                        st.session_state.questions = []
-                    if "answers" not in st.session_state:
-                        st.session_state.answers = {}
-                    if "generated_questions" not in st.session_state:
-                        st.session_state.generated_questions = set()
-                    if prompt1:
-                        question_chain = LLMChain(llm=llm, prompt=prompt_template, verbose=True)
-                        question = question_chain.run({"Chapter":prompt1})
-                        while len(st.session_state.questions) < num_questions:
-                            if question not in st.session_state.generated_questions:
-                                st.session_state.questions.append(question)
-                                st.session_state.generated_questions.add(question)
-                            if len(st.session_state.questions) >= num_questions:
-                                break
-                    for i in range(num_questions):
-                        if i < len(st.session_state.questions):
-                            st.write(f"### Question {i + 1}: {st.session_state.questions[i]}")
-                            answer_key = f"answer_{i}" 
-                            answer = st.text_input(f"Enter your answer for Question {i + 1}", 
-                                                key=answer_key, 
-                                                value=st.session_state.answers.get(answer_key, ""))
-                            if st.button(f"Submit Answer for Question {i + 1}", key=f"submit_{i}"):
-                                if answer:
-                                    st.session_state.answers[answer_key] = answer
-                                    document_chain = create_stuff_documents_chain(llm, prompt2)
-                                    retriever = st.session_state.vectors.as_retriever()
-                                    retrieval_chain = create_retrieval_chain(retriever, document_chain)
-                                    response = retrieval_chain.invoke({
-                                        'input': st.session_state.questions[i], 
-                                        'answer': answer
-                                    })
-                                    marks = float(response['answer'])
-                                    if(marks>=0.6):
-                                        marks=1
-                                    else:
-                                        marks=0 
-                                    st.session_state.marks.append(marks)
-                                    st.write(f"Marks for Question {i + 1}: {marks}/1")
-                    if st.session_state.marks:
-                        total_marks = sum(st.session_state.marks)
-                        st.write(f"### Total Marks: {total_marks} out of {num_questions * 1}")
+                        Output the answer only .
+                        """
+                        prompt_template3 = PromptTemplate(input_variables=["question"],template=PROMPT_TEMPLATE_STRING3)
+                        load_dotenv()
+                        
+                        Groq_API_KEY = os.getenv("GROQ_API_KEY")
+                        llm = ChatGroq(groq_api_key=Groq_API_KEY, model_name="Llama3-8b-8192")
+                        prompt1 = chapter_option 
+                        num_questions = st.number_input("Enter the number of questions you want", min_value=1,max_value=15, step=1)
+                        if "marks" not in st.session_state:
+                            st.session_state.marks = []
+                        if "questions" not in st.session_state:
+                            st.session_state.questions = []
+                        if "answers" not in st.session_state:
+                            st.session_state.answers = {}
+                        if "generated_questions" not in st.session_state:
+                            st.session_state.generated_questions = set()
+                        if "suggestion" not in st.session_state:
+                            st.session_state.suggestion = []
+                        if prompt1:
+                            question_chain = LLMChain(llm=llm, prompt=prompt_template, verbose=True)
+                            question = question_chain.run({"Chapter":prompt1})
+                            while len(st.session_state.questions) < num_questions:
+                                if question not in st.session_state.generated_questions:
+                                    st.session_state.questions.append(question)
+                                    st.session_state.generated_questions.add(question)
+                                if len(st.session_state.questions) >= num_questions:
+                                    break
+                        for i in range(num_questions):
+                            if i < len(st.session_state.questions):
+                                st.write(f"### Question {i + 1}: {st.session_state.questions[i]}")
+                                answer_key = f"answer_{i}" 
+                                answer = st.text_area(f"Enter your answer for Question {i + 1}", 
+                                                    key=answer_key, 
+                                                    value=st.session_state.answers.get(answer_key, ""))
+                                if st.button(f"Submit Answer for Question {i + 1}", key=f"submit_{i}"):
+                                    if answer:
+                                        st.session_state.answers[answer_key] = answer
+                                        response_chain = LLMChain(llm=llm, prompt=prompt_template2, verbose=True)
+                                        response = response_chain.run({"input":st.session_state.questions[i],'answer':answer})
+                                        suggested_chain = LLMChain(llm=llm, prompt=prompt_template3, verbose=True)
+                                        response = response_chain.run({"input":st.session_state.questions[i],'answer':answer})
+                                        suggestion = suggested_chain.run({"question":st.session_state.questions[i]})
+                                        match = re.search(r'\d+(\.\d+)?', response)
+                                        if match:
+                                            marks = float(match.group())
+                                            # Rounding the score as per your logic
+                                            marks = 1 if marks >= 0.6 else 0
+                                        else:
+                                            marks = 0 
+                                        st.session_state.marks.append(marks)
+                                        st.session_state.suggestion.append(suggestion)
+                                        st.write(f"Suggested Answer {i + 1}: {suggestion}")
+                                        st.write(f"Marks for Question {i + 1}: {marks}/1")
+                        if st.session_state.marks:
+                            total_marks = sum(st.session_state.marks)
+                            st.write(f"### Total Marks: {total_marks} out of {num_questions * 1}")
 
     elif selected_class == "Class 12":
-            st.markdown('<h2 class="header">Self Assesment 12</h2>', unsafe_allow_html=True)
-            subject_option = st.selectbox("Select Subject", ["Select"] + list(class_12_subjects.keys()))
-            if subject_option != "Select":
-                chapters = class_12_subjects.get(subject_option, [])
-                chapter_option = st.selectbox("Select Chapter", ["Select"] + chapters)
-                if chapter_option != "Select":
-                    st.write(f"You have selected: **{chapter_option}**")
-                    def vector_embedding():
-                        if "vectors" not in st.session_state:
-                            index_file = "faiss_index_12"
-                            if os.path.exists(index_file):
-                                st.session_state.vectors = FAISS.load_local(
-                                    index_file, CohereEmbeddings(model="multilingual-22-12"), allow_dangerous_deserialization=True
-                                )
-                            else:
-                                st.error("Index file not found. Please check the path.")
-                    vector_embedding()
-                    PROMPT_TEMPLATE_STRING = """
-                    Based on the CBSE Class 12 , generate a question in the form of a complete sentence:
-                                        Create a question about the following chapter: {Chapter}
-                                        
-                                        Provide only the question as the output, with no additional text. 
+                subject_option = st.selectbox("Select Subject", ["Select"] + list(class_12_subjects.keys()))
+                if subject_option != "Select":
+                    chapters = class_12_subjects.get(subject_option, [])
+                    chapter_option = st.selectbox("Select Chapter", ["Select"] + chapters)
+                    if chapter_option != "Select":
+                        st.write(f"You have selected: **{chapter_option}**")
+                        def vector_embedding():
+                            if "vectors" not in st.session_state:
+                                index_file = "faiss_index_12"
+                                if os.path.exists(index_file):
+                                    st.session_state.vectors = FAISS.load_local(
+                                        index_file, CohereEmbeddings(model="multilingual-22-12"), allow_dangerous_deserialization=True
+                                    )
+                                else:
+                                    st.error("Index file not found. Please check the path.")
+                        vector_embedding()
+                        PROMPT_TEMPLATE_STRING = """
+                        Based on the CBSE Class 12 , generate a question in the form of a complete sentence:
+                                            Create a question about the following chapter: {Chapter}
+                                            
+                                            Provide only the question as the output, with no additional text. 
+                            """
+                        prompt_template = PromptTemplate(input_variables=["Chapter"],template=PROMPT_TEMPLATE_STRING)
+                        PROMPT_TEMPLATE_STRING2 ="""
+                        Evaluate the provided answer based strictly on CBSE Class 12 standards, assigning marks out of 1.
+                        Deduct marks for any inaccuracies, even minor ones. If the final score is 0.6 or higher, round it up to 1. Provide only the marks as the output.
+
+                            Question: {input}
+                            Answer: {answer}
+
+                            Output the marks out of 1.
                         """
-                    prompt_template = PromptTemplate(input_variables=["Chapter"],template=PROMPT_TEMPLATE_STRING)
-                    prompt2 = ChatPromptTemplate.from_template("""\
-                        Evaluate the provided answer strictly based on the given context only, and assign marks out of 1.
-                        Consider even minor inaccuracies when deducting marks. If the given marks are equal or greter than 0.6, round up to 1.
-                        Provide only the marks as the output.
+                        prompt_template2 = PromptTemplate(input_variables=["input","answer"],template=PROMPT_TEMPLATE_STRING2)
+                        PROMPT_TEMPLATE_STRING3="""
+                        Provide a clear and accurate answer to the following question based on CBSE Class 12 standards.
 
-                        <context>
-                        {context}
-                        <context>
+                        Question: {question}
 
-                        Question: {input}
-                        Answer: {answer}
+                        Output the answer only .
+                        """
+                        prompt_template3 = PromptTemplate(input_variables=["question"],template=PROMPT_TEMPLATE_STRING3)
+                        load_dotenv()
+                        
+                        Groq_API_KEY = os.getenv("GROQ_API_KEY")
+                        llm = ChatGroq(groq_api_key=Groq_API_KEY, model_name="Llama3-8b-8192")
+                        prompt1 = chapter_option 
+                        num_questions = st.number_input("Enter the number of questions you want", min_value=1,max_value=15, step=1)
+                        if "marks" not in st.session_state:
+                            st.session_state.marks = []
+                        if "questions" not in st.session_state:
+                            st.session_state.questions = []
+                        if "answers" not in st.session_state:
+                            st.session_state.answers = {}
+                        if "generated_questions" not in st.session_state:
+                            st.session_state.generated_questions = set()
+                        if "suggestion" not in st.session_state:
+                            st.session_state.suggestion = []
+                        if prompt1:
+                            question_chain = LLMChain(llm=llm, prompt=prompt_template, verbose=True)
+                            question = question_chain.run({"Chapter":prompt1})
+                            while len(st.session_state.questions) < num_questions:
+                                if question not in st.session_state.generated_questions:
+                                    st.session_state.questions.append(question)
+                                    st.session_state.generated_questions.add(question)
+                                if len(st.session_state.questions) >= num_questions:
+                                    break
+                        for i in range(num_questions):
+                            if i < len(st.session_state.questions):
+                                st.write(f"### Question {i + 1}: {st.session_state.questions[i]}")
+                                answer_key = f"answer_{i}" 
+                                answer = st.text_area(f"Enter your answer for Question {i + 1}", 
+                                                    key=answer_key, 
+                                                    value=st.session_state.answers.get(answer_key, ""))
+                                if st.button(f"Submit Answer for Question {i + 1}", key=f"submit_{i}"):
+                                    if answer:
+                                        st.session_state.answers[answer_key] = answer
+                                        response_chain = LLMChain(llm=llm, prompt=prompt_template2, verbose=True)
+                                        response = response_chain.run({"input":st.session_state.questions[i],'answer':answer})
+                                        suggested_chain = LLMChain(llm=llm, prompt=prompt_template3, verbose=True)
+                                        response = response_chain.run({"input":st.session_state.questions[i],'answer':answer})
+                                        suggestion = suggested_chain.run({"question":st.session_state.questions[i]})
+                                        match = re.search(r'\d+(\.\d+)?', response)
+                                        if match:
+                                            marks = float(match.group())
+                                            # Rounding the score as per your logic
+                                            marks = 1 if marks >= 0.6 else 0
+                                        else:
+                                            marks = 0
+                                        st.session_state.marks.append(marks)
+                                        st.session_state.suggestion.append(suggestion)
+                                        st.write(f"Suggested Answer {i + 1}: {suggestion}")
+                                        st.write(f"Marks for Question {i + 1}: {marks}/1")
+                        if st.session_state.marks:
+                            total_marks = sum(st.session_state.marks)
+                            st.write(f"### Total Marks: {total_marks} out of {num_questions * 1}")
 
-                        Output the marks out of 1.
-                    """)
-                    load_dotenv()
-                    Groq_API_KEY = os.getenv("GROQ_API_KEY")
-                    llm = ChatGroq(groq_api_key=Groq_API_KEY, model_name="Llama3-8b-8192")
-                    prompt1 = chapter_option 
-                    num_questions = st.number_input("Enter the number of questions you want", min_value=1,max_value=15, step=1)
-                    if "marks" not in st.session_state:
-                        st.session_state.marks = []
-                    if "questions" not in st.session_state:
-                        st.session_state.questions = []
-                    if "answers" not in st.session_state:
-                        st.session_state.answers = {}
-                    if "generated_questions" not in st.session_state:
-                        st.session_state.generated_questions = set()
-                    if prompt1:
-                        question_chain = LLMChain(llm=llm, prompt=prompt_template, verbose=True)
-                        question = question_chain.run({"Chapter":prompt1})
-                        while len(st.session_state.questions) < num_questions:
-                            if question not in st.session_state.generated_questions:
-                                st.session_state.questions.append(question)
-                                st.session_state.generated_questions.add(question)
-                            if len(st.session_state.questions) >= num_questions:
-                                break
-                    for i in range(num_questions):
-                        if i < len(st.session_state.questions):
-                            st.write(f"### Question {i + 1}: {st.session_state.questions[i]}")
-                            answer_key = f"answer_{i}" 
-                            answer = st.text_input(f"Enter your answer for Question {i + 1}", 
-                                                key=answer_key, 
-                                                value=st.session_state.answers.get(answer_key, ""))
-                            if st.button(f"Submit Answer for Question {i + 1}", key=f"submit_{i}"):
-                                if answer:
-                                    st.session_state.answers[answer_key] = answer
-                                    document_chain = create_stuff_documents_chain(llm, prompt2)
-                                    retriever = st.session_state.vectors.as_retriever()
-                                    retrieval_chain = create_retrieval_chain(retriever, document_chain)
-                                    response = retrieval_chain.invoke({
-                                        'input': st.session_state.questions[i], 
-                                        'answer': answer
-                                    })
-                                    marks = float(response['answer'])
-                                    if(marks>=0.6):
-                                        marks=1
-                                    else:
-                                        marks=0 
-                                    st.session_state.marks.append(marks)
-                                    st.write(f"Marks for Question {i + 1}: {marks}/1")
-                    if st.session_state.marks:
-                        total_marks = sum(st.session_state.marks)
-                        st.write(f"### Total Marks: {total_marks} out of {num_questions * 1}")
+
